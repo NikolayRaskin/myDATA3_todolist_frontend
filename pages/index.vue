@@ -1,93 +1,128 @@
 <template>
-  <v-row justify="center" align="center">
-    <v-col cols="12" sm="8" md="6">
-      <div class="text-center">
-        <logo />
-        <vuetify-logo />
-      </div>
-      <v-card>
-        <v-card-title class="headline">
-          Welcome to the Vuetify + Nuxt.js template
-        </v-card-title>
-        <v-card-text>
-          <p>
-            Vuetify is a progressive Material Design component framework for
-            Vue.js. It was designed to empower developers to create amazing
-            applications.
-          </p>
-          <p>
-            For more information on Vuetify, check out the
-            <a
-              href="https://vuetifyjs.com"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              documentation </a
-            >.
-          </p>
-          <p>
-            If you have questions, please join the official
-            <a
-              href="https://chat.vuetifyjs.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="chat"
-            >
-              discord </a
-            >.
-          </p>
-          <p>
-            Find a bug? Report it on the github
-            <a
-              href="https://github.com/vuetifyjs/vuetify/issues"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="contribute"
-            >
-              issue board </a
-            >.
-          </p>
-          <p>
-            Thank you for developing with Vuetify and I look forward to bringing
-            more exciting features in the future.
-          </p>
-          <div class="text-xs-right">
-            <em><small>&mdash; John Leider</small></em>
-          </div>
-          <hr class="my-3" />
-          <a
-            href="https://nuxtjs.org/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Nuxt Documentation
-          </a>
-          <br />
-          <a
-            href="https://github.com/nuxt/nuxt.js"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Nuxt GitHub
-          </a>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn color="primary" nuxt to="/inspire"> Continue </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-col>
-  </v-row>
+  <v-container>
+    <section class="d-flex justify-space-between align-center">
+      <h1>Todo List</h1>
+      <CreateTodoModal @saveTodo="saveTodo" />
+    </section>
+    <v-row v-if="!loading" class="d-flex flex-wrap mt-4">
+      <v-col
+        v-for="item in todo"
+        :key="`todo-${item.id}`"
+        cols="4"
+        class="todo-wrapper"
+      >
+        <Todo
+          :todo="item"
+          @completed="completed"
+          @edit="edit"
+          @remove="remove"
+        />
+      </v-col>
+    </v-row>
+    <section v-else class="d-flex flex-column align-center">
+      <span class="py-4">Loading...</span>
+      <v-progress-circular indeterminate color="primary"></v-progress-circular>
+    </section>
+  </v-container>
 </template>
 
 <script>
-import Logo from '~/components/Logo.vue'
-import VuetifyLogo from '~/components/VuetifyLogo.vue'
+import { mapGetters } from 'vuex'
+
+import Todo from '@/components/Todo'
+import CreateTodoModal from '@/components/CreateTodoModal'
 
 export default {
-  components: {
-    Logo,
-    VuetifyLogo,
+  components: { Todo, CreateTodoModal },
+  data() {
+    return {
+      loading: true,
+    }
+  },
+  computed: {
+    ...mapGetters({
+      todo: 'todo/todo',
+    }),
+  },
+  mounted() {
+    this.fetchTodo()
+  },
+  methods: {
+    fetchTodo() {
+      this.loading = true
+      this.$store
+        .dispatch('todo/fetchTodos', {
+          $axios: this.$axios,
+        })
+        .then((result) => {
+          this.loading = false
+        })
+        .catch((error) => {
+          console.log(error)
+          this.loading = false
+        })
+    },
+
+    saveTodo(todo, stopLoading) {
+      this.$store
+        .dispatch('todo/create', {
+          $axios: this.$axios,
+          data: todo,
+        })
+        .then((result) => {
+          stopLoading()
+        })
+        .catch((error) => {
+          console.log(error)
+          stopLoading()
+        })
+    },
+
+    completed(todo, stopLoading) {
+      this.$store
+        .dispatch('todo/edit', {
+          $axios: this.$axios,
+          data: {
+            id: todo.id,
+            completed: true,
+          },
+        })
+        .then((result) => {
+          stopLoading()
+        })
+        .catch((error) => {
+          console.log(error)
+          stopLoading()
+        })
+    },
+    edit(todo, stopLoading) {
+      this.$store
+        .dispatch('todo/edit', {
+          $axios: this.$axios,
+          data: { ...todo },
+        })
+        .then((result) => {
+          stopLoading()
+        })
+        .catch((error) => {
+          console.log(error)
+          stopLoading()
+        })
+    },
+    remove(todo, stopLoading) {
+      return this.$store
+        .dispatch('todo/remove', {
+          $axios: this.$axios,
+          data: todo,
+        })
+        .then((result) => {
+          stopLoading()
+        })
+        .catch((error) => {
+          console.log(error)
+          stopLoading()
+        })
+    },
   },
 }
 </script>
